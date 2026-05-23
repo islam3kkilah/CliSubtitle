@@ -4,6 +4,7 @@
  */
 package com.islam.cliprojectmvc.controller;
 
+import com.islam.cliprojectmvc.model.ConsoleModel;
 import com.islam.cliprojectmvc.service.SubtitleService;
 import com.islam.cliprojectmvc.service.VideoService;
 import com.islam.cliprojectmvc.view.FrameView;
@@ -18,7 +19,7 @@ public class MainController {
 
     private final VideoService videoService;
     private final SubtitleService subtitleService;
-
+    ConsoleModel model = new ConsoleModel();
     public MainController(FrameView view) {
 
         this.view = view;
@@ -53,5 +54,9 @@ public class MainController {
 
         WindowController windowController =
                 new WindowController(view);
+        
+        TextPaneController textPaneController = 
+                new TextPaneController(view, model);
+        
     }
 }

@@ -19,7 +19,7 @@ public class Cliprojectmvc {
            
             FrameView view = new FrameView();
             new MainController(view);
-
+            view.appendPrompt();
             view.setVisible(true);
         });
     }

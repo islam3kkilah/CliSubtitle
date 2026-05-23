@@ -16,6 +16,10 @@ import java.io.InputStream;
 import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.JTableHeader;
+import javax.swing.text.AbstractDocument;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.Document;
+import javax.swing.text.StyledDocument;
 import uk.co.caprica.vlcj.player.component.EmbeddedMediaPlayerComponent;
 
 public class FrameView extends JFrame {
@@ -151,7 +155,7 @@ public class FrameView extends JFrame {
         
         
         setJMenuBar(menuBar);
-        setExtendedState(JFrame.MAXIMIZED_BOTH);
+        setSize(1200,700);
         setTitle("CliSUB");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -206,7 +210,7 @@ public class FrameView extends JFrame {
         toolBar.add(openButton);
         toolBar.add(saveButton);
         //=============== JTextPane ===========
-        kawkabFont = loadFont("/fonts/KawkabMono-Regular.ttf", 13f);
+        kawkabFont = loadFont("/fonts/KawkabMono-Regular.ttf", 11f);
         consolasFont = loadFont("/fonts/Consolas-Regular.ttf", 14f);
         //=================== JTable ==========
         
@@ -357,6 +361,10 @@ public class FrameView extends JFrame {
         
         
         add(sumOfPanel);
+        StyledDocument doc = area.getStyledDocument();
+        ((AbstractDocument) doc).setDocumentFilter(
+                new EndOnlyDocumentFilter(area)
+        );
     }
     
     public JMenuItem getExitItem() {
@@ -437,7 +445,10 @@ public class FrameView extends JFrame {
     public JTextPane getArea(){
         return area;
     }
-   
+    
+    public JTextPane getTextPane(){
+        return area;
+    }
     //==================loadFont===========================
     private Font loadFont(String path, float size) {
         try (InputStream is = getClass().getResourceAsStream(path)) {
@@ -519,5 +530,61 @@ public class FrameView extends JFrame {
     
     public void applyDraculaTheme() {
         applyTextPaneTheme(new Color(40, 42, 54),new Color(241, 250, 140), Color.WHITE, new Color(98, 114, 164),Color.WHITE,kawkabFont);
+    }
+    
+    public boolean isCaretOnLastLine(JTextPane textPane) {
+        try {
+            int caret = textPane.getCaretPosition();
+            System.out.println(caret);
+            int docLength = textPane.getDocument().getLength();
+            System.out.println(docLength);
+            int caretLine = javax.swing.text.Utilities.getRowStart(textPane, caret);
+            System.out.println(caretLine);
+            int lastLine  = javax.swing.text.Utilities.getRowStart(textPane, docLength);
+            System.out.println(lastLine);
+
+            return caretLine == lastLine;
+        } catch (BadLocationException e) {
+            return false;
+        }
+    }
+
+    public void appendPrompt() {
+        SwingUtilities.invokeLater(() -> {
+            try {
+                StyledDocument doc = area.getStyledDocument();
+                String prompt = "> ";
+                doc.insertString(doc.getLength(), prompt, null);
+                area.setCaretPosition(doc.getLength());
+            } catch (BadLocationException e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
+    public String getCurrentLineText(JTextPane textPane) {
+        try {
+            int caretPos = textPane.getCaretPosition();
+            int lineStart = javax.swing.text.Utilities.getRowStart(textPane, caretPos);
+            int lineEnd = javax.swing.text.Utilities.getRowEnd(textPane, caretPos);
+            return textPane.getDocument().getText(lineStart, lineEnd - lineStart);
+        } catch (BadLocationException e) {
+            e.printStackTrace();
+            return "";
+        }
+    }
+
+    public void append(String text) {
+        try {
+            Document doc = area.getDocument();
+            doc.insertString(doc.getLength(), text, null);
+            area.setCaretPosition(doc.getLength());
+        } catch (BadLocationException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void clear() {
+        area.setText("");
     }
 }
