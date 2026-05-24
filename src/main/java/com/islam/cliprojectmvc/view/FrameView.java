@@ -20,6 +20,7 @@ import javax.swing.text.AbstractDocument;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
 import javax.swing.text.StyledDocument;
+import uk.co.caprica.vlcj.factory.MediaPlayerFactory;
 import uk.co.caprica.vlcj.player.component.EmbeddedMediaPlayerComponent;
 
 public class FrameView extends JFrame {
@@ -45,7 +46,7 @@ public class FrameView extends JFrame {
     JSlider seekBar;
     JButton playBtn;
     JButton stopBtn;
-    JButton pauseBtn;
+    JButton infoBtn;
     
     EmbeddedMediaPlayerComponent videoComponent;
     JLabel volumeLabel;
@@ -79,10 +80,13 @@ public class FrameView extends JFrame {
     JPanel wholeTopPanel;
     JPanel toolbarAndTopPanel;
     JPanel sumOfPanel;
-    
+    JPanel BottomPanel;
+            
     private ImageIcon playIcon;
     private ImageIcon pauseIcon;
     private ImageIcon stopIcon;
+    private ImageIcon infoIcon;
+    
     public FrameView() {
         //================== menu bar ========================
         menuBar = new JMenuBar();
@@ -128,11 +132,19 @@ public class FrameView extends JFrame {
             getClass().getResource("/icons/stop-16.png")
         );
         
+        infoIcon = new ImageIcon(
+            getClass().getResource("/icons/info-16.png")
+        );
+        
         playBtn = new JButton(playIcon);
         stopBtn = new JButton(stopIcon);
-        pauseBtn = new JButton(pauseIcon);
+        infoBtn = new JButton(infoIcon);
+        
         //=================== vlcj =============================
-        videoComponent = new EmbeddedMediaPlayerComponent();
+        videoComponent = new EmbeddedMediaPlayerComponent(
+            "--freetype-rel-fontsize=10",
+            "--freetype-outline-thickness=2"
+        );
         volumeLabel = new JLabel();
         
         emptyLabel = new JLabel(
@@ -148,15 +160,6 @@ public class FrameView extends JFrame {
         area = new JTextPane();
         areaScrollPane = new JScrollPane(area);
         tabbedPane.add(areaScrollPane, "Console");
-        // ====================== JPanel =======================
-        leftControls = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-        centerControls = new JPanel(new BorderLayout(7, 0));
-        controlBar = new JPanel(new BorderLayout());
-        videoLayer = new JLayeredPane();
-        topLeftPanel = new JPanel(new BorderLayout());
-        emptyPanel = new JPanel(new BorderLayout());
-        
-        
         
         setJMenuBar(menuBar);
         setSize(1200,700);
@@ -182,16 +185,15 @@ public class FrameView extends JFrame {
         playBtn.setMinimumSize(new Dimension(23, 23));
         playBtn.setMaximumSize(new Dimension(23, 23));
         
-        pauseBtn.setFocusable(false);
-        pauseBtn.setPreferredSize(new Dimension(23, 23));
-        pauseBtn.setMinimumSize(new Dimension(23, 23));
-        pauseBtn.setMaximumSize(new Dimension(23, 23));
-        
         stopBtn.setFocusable(false);
         stopBtn.setPreferredSize(new Dimension(23, 23));
         stopBtn.setMinimumSize(new Dimension(23, 23));
         stopBtn.setMaximumSize(new Dimension(23, 23));
         
+        infoBtn.setFocusable(false);
+        infoBtn.setPreferredSize(new Dimension(23, 23));
+        infoBtn.setMinimumSize(new Dimension(23, 23));
+        infoBtn.setMaximumSize(new Dimension(23, 23));
         //============== menu bar =================
         ButtonGroup themeGroup = new ButtonGroup();
         themeGroup.add(draculaItem);
@@ -221,6 +223,17 @@ public class FrameView extends JFrame {
         emptyLabel.setHorizontalAlignment(JLabel.CENTER);
         emptyLabel.setFont(new Font("Arial", Font.PLAIN, 14));
         emptyLabel.setForeground(Color.GRAY);
+        table.setRowSelectionAllowed(true);
+        table.setColumnSelectionAllowed(false);
+        table.setCellSelectionEnabled(false);
+        table.setFocusable(false);
+        table.setRequestFocusEnabled(false);
+        table.setDragEnabled(false);
+
+        table.setSelectionMode(
+                javax.swing.ListSelectionModel.SINGLE_SELECTION
+        );
+        
         table.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
         table.setColumnSelectionAllowed(false);
         JTableHeader header = table.getTableHeader();
@@ -297,22 +310,26 @@ public class FrameView extends JFrame {
             }
         });
         //=============== JPanels  ============
+        leftControls = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         leftControls.setOpaque(false);
         leftControls.add(playBtn);
-        leftControls.add(pauseBtn);
         leftControls.add(stopBtn);
+        leftControls.add(infoBtn);
         
+        centerControls = new JPanel(new BorderLayout(7, 0));
         centerControls.setOpaque(false);
         centerControls.add(startTime, BorderLayout.WEST);
         centerControls.add(seekBar, BorderLayout.CENTER);
         centerControls.add(endTime, BorderLayout.EAST);
         
+        controlBar = new JPanel(new BorderLayout());
         controlBar.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLoweredBevelBorder(), BorderFactory.createEmptyBorder(3, 3, 3, 3)));
         controlBar.setBackground(new Color(241, 250, 140));
         controlBar.setOpaque(true);
         controlBar.add(leftControls, BorderLayout.WEST);
         controlBar.add(centerControls, BorderLayout.CENTER);
         
+        videoLayer = new JLayeredPane();
         videoLayer.setOpaque(false);
         videoLayer.setBackground(new Color(0, 0, 0, 0));
         videoLayer.setLayout(null);
@@ -321,14 +338,18 @@ public class FrameView extends JFrame {
         videoComponent.setBounds(0, 0, 800, 500);
         volumeLabel.setBounds(10, 10, 80, 20);
         
+        
+        topLeftPanel = new JPanel(new BorderLayout());
         topLeftPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.GRAY), "Player",TitledBorder.LEFT, TitledBorder.TOP, new Font("Arial", Font.PLAIN, 12), Color.BLACK));
         topLeftPanel.add(videoLayer, BorderLayout.CENTER);
         topLeftPanel.add(controlBar, BorderLayout.SOUTH);
         topLeftPanel.setOpaque(false);
         topLeftPanel.setVisible(false);
-        JPanel BottomPanel = new JPanel(new BorderLayout());
+        
+        BottomPanel = new JPanel(new BorderLayout());
         BottomPanel.add(tabbedPane, BorderLayout.CENTER);
         
+        emptyPanel = new JPanel(new BorderLayout());
         emptyPanel.setOpaque(false);
         emptyPanel.setAlignmentX(0.5f);
         emptyPanel.setAlignmentY(0.5f);
@@ -418,10 +439,6 @@ public class FrameView extends JFrame {
         return stopBtn;
     }
     
-    public JButton getPauseBtn(){
-        return pauseBtn;
-    }
-    
     public JLabel getVolumeLabel(){
         return  volumeLabel;
     }
@@ -460,6 +477,10 @@ public class FrameView extends JFrame {
 
     public ImageIcon getPauseIcon() {
         return pauseIcon;
+    }
+    
+    public JButton getInfoBtn() {
+        return infoBtn;
     }
     //==================loadFont===========================
     private Font loadFont(String path, float size) {

@@ -5,6 +5,8 @@
 package com.islam.cliprojectmvc;
 
 import com.islam.cliprojectmvc.controller.MainController;
+import com.islam.cliprojectmvc.controller.TextPaneController;
+import com.islam.cliprojectmvc.model.ConsoleModel;
 import com.islam.cliprojectmvc.view.FrameView;
 import javax.swing.SwingUtilities;
 
@@ -16,7 +18,6 @@ public class Cliprojectmvc {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-           
             FrameView view = new FrameView();
             new MainController(view);
             view.appendPrompt();

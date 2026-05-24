@@ -3,6 +3,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
 package com.islam.cliprojectmvc.controller;
+import com.islam.cliprojectmvc.model.ConsoleModel;
 import com.islam.cliprojectmvc.model.Subtitle;
 import com.islam.cliprojectmvc.util.SrtParser;
 import com.islam.cliprojectmvc.util.SrtWriter;
@@ -36,7 +37,13 @@ public class MainController {
     private boolean autoFollowSubtitle = true;
     private long segmentEndTime = -1;
     boolean isSeeking = false;
+    private boolean previewMode = false;
+    
+    ConsoleModel model = new ConsoleModel();
+    TextPaneController paneController;
     public MainController(FrameView view) {
+        model = new ConsoleModel();
+        paneController = new TextPaneController(view, model);
         this.view = view;
         
         view.getExitItem().addActionListener(e -> System.exit(0));
@@ -76,13 +83,59 @@ public class MainController {
             
         }
     });
-        
-        view.getPlayBtn().addActionListener(e -> {
-            view.getVideoComponent().mediaPlayer().controls().play();
+        view.getVideoComponent().mediaPlayer().events()
+        .addMediaPlayerEventListener(new MediaPlayerEventAdapter() {
+
+            @Override
+            public void playing(
+                    uk.co.caprica.vlcj.player.base.MediaPlayer mediaPlayer) {
+
+                SwingUtilities.invokeLater(() -> {
+                    view.getPlayBtn().setIcon(view.getPauseIcon());
+                });
+            }
+
+            @Override
+            public void paused(
+                    uk.co.caprica.vlcj.player.base.MediaPlayer mediaPlayer) {
+
+                SwingUtilities.invokeLater(() -> {
+                    view.getPlayBtn().setIcon(view.getPlayIcon());
+                });
+            }
+
+            @Override
+            public void stopped(
+                    uk.co.caprica.vlcj.player.base.MediaPlayer mediaPlayer) {
+
+                SwingUtilities.invokeLater(() -> {
+                    view.getPlayBtn().setIcon(view.getPlayIcon());
+                });
+            }
         });
         
-        view.getPauseBtn().addActionListener(e -> {
-            view.getVideoComponent().mediaPlayer().controls().pause();
+        view.getPlayBtn().addActionListener(e -> {
+
+            boolean playing =
+                    view.getVideoComponent()
+                            .mediaPlayer()
+                            .status()
+                            .isPlaying();
+
+            if (playing) {
+
+                view.getVideoComponent()
+                        .mediaPlayer()
+                        .controls()
+                        .pause();
+
+            } else {
+
+                view.getVideoComponent()
+                        .mediaPlayer()
+                        .controls()
+                        .play();
+            }
         });
         
         view.getStopBtn().addActionListener(e -> {
@@ -137,6 +190,8 @@ public class MainController {
                         if (segmentEndTime > 0 && newTime >= segmentEndTime) {
                             mediaPlayer.controls().pause(); // or stop()
                             segmentEndTime = -1; // reset
+                            previewMode = false;
+
                         }
 
                     });
@@ -162,25 +217,44 @@ public class MainController {
                 start();
             }};
         });
-           
+        
+        
         
         view.getTable().addMouseListener(new java.awt.event.MouseAdapter() {
-        @Override
-        public void mousePressed(java.awt.event.MouseEvent e) {
 
-            int row = view.getTable().rowAtPoint(e.getPoint());
-            if (row < 0) return;
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent e) {
 
-            view.getTable().setRowSelectionInterval(row, row);
+                if (SwingUtilities.isLeftMouseButton(e)) {
 
-            Subtitle s = view.getModel().getData().get(row);
+                    int row = view.getTable().rowAtPoint(e.getPoint());
 
-            segmentEndTime = s.getEndTime();
+                    if (row < 0) {
+                        return;
+                    }
 
-            view.getVideoComponent().mediaPlayer().controls().setTime(s.getStartTime());
-            view.getVideoComponent().mediaPlayer().controls().play();
-        }
-    });
+                    // force single row only
+                    view.getTable().clearSelection();
+                    view.getTable().setRowSelectionInterval(row, row);
+
+                    Subtitle s = view.getModel().getData().get(row);
+
+                    previewMode = true;
+                    currentSubtitleRow = row;
+                    segmentEndTime = s.getEndTime();
+
+                    view.getVideoComponent()
+                            .mediaPlayer()
+                            .controls()
+                            .setTime(s.getStartTime());
+
+                    view.getVideoComponent()
+                            .mediaPlayer()
+                            .controls()
+                            .play();
+                }
+            }
+        });
         
         view.getTable().setTransferHandler(new javax.swing.TransferHandler() {
 
@@ -237,12 +311,16 @@ public class MainController {
                 java.awt.Component c = super.getTableCellRendererComponent(
                         table, value, isSelected, hasFocus, row, column);
 
+                Color pink = new Color(255, 182, 193);
+
                 if (row == currentSubtitleRow) {
-                    c.setBackground(new Color(255, 230, 120));
+                    c.setBackground(pink);
                     c.setForeground(Color.BLACK);
+
                 } else if (isSelected) {
-                    c.setBackground(Color.PINK);
+                    c.setBackground(pink);
                     c.setForeground(Color.BLACK);
+
                 } else {
                     c.setBackground(Color.WHITE);
                     c.setForeground(Color.BLACK);
@@ -343,10 +421,8 @@ public class MainController {
         );
     }
     
-    private void syncSubtitle(long currentTime) {
-
-        if (userSeeking) return;
-
+   private void syncSubtitle(long currentTime) {
+        if (userSeeking || previewMode) return;
         syncing = true;
 
         try {
@@ -357,33 +433,40 @@ public class MainController {
                 Subtitle s = subtitles.get(i);
 
                 if (currentTime >= s.getStartTime()
-                    && currentTime <= s.getEndTime()) {
-                if (i == currentSubtitleRow) {
-                    return;
-                }
-                currentSubtitleRow = i;
-                final int row = i;
+                        && currentTime < s.getEndTime()) {
 
-                SwingUtilities.invokeLater(() -> {
-                    if (view.getTable().getRowCount() > row) {
-
-                        view.getTable().setRowSelectionInterval(row, row);
-
-                        if (autoFollowSubtitle) {
-                            view.getTable().scrollRectToVisible(view.getTable().getCellRect(row, 0, true));
-                        }
-
-                        view.getTable().repaint();
+                    if (i == currentSubtitleRow) {
+                        return;
                     }
-                });
 
-                break;
+                    currentSubtitleRow = i;
+                    final int row = i;
+
+                    SwingUtilities.invokeLater(() -> {
+
+                        if (view.getTable().getRowCount() > row) {
+
+                            view.getTable().setRowSelectionInterval(row, row);
+
+                            if (autoFollowSubtitle) {
+                                view.getTable().scrollRectToVisible(
+                                        view.getTable().getCellRect(row, 0, true)
+                                );
+                            }
+
+                            view.getTable().repaint();
+                        }
+                    });
+
+                    break;
+                }
             }
-            }
+
         } finally {
             syncing = false;
         }
     }
+   
     private void loadSubtitlesIntoVlc() {
 
         try {
