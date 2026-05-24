@@ -79,6 +79,10 @@ public class FrameView extends JFrame {
     JPanel wholeTopPanel;
     JPanel toolbarAndTopPanel;
     JPanel sumOfPanel;
+    
+    private ImageIcon playIcon;
+    private ImageIcon pauseIcon;
+    private ImageIcon stopIcon;
     public FrameView() {
         //================== menu bar ========================
         menuBar = new JMenuBar();
@@ -112,15 +116,15 @@ public class FrameView extends JFrame {
         seekBar.setPaintLabels(false);
         seekBar.setPreferredSize(new Dimension(300, 20));
         
-        ImageIcon playIcon = new ImageIcon(
+        playIcon = new ImageIcon(
             getClass().getResource("/icons/play-16.png")
         );
         
-        ImageIcon pauseIcon = new ImageIcon(
+        pauseIcon = new ImageIcon(
             getClass().getResource("/icons/pause-16.png")
         );
         
-        ImageIcon stopIcon = new ImageIcon(
+        stopIcon = new ImageIcon(
             getClass().getResource("/icons/stop-16.png")
         );
         
@@ -448,6 +452,14 @@ public class FrameView extends JFrame {
     
     public JTextPane getTextPane(){
         return area;
+    }
+    
+    public ImageIcon getPlayIcon() {
+        return playIcon;
+    }
+
+    public ImageIcon getPauseIcon() {
+        return pauseIcon;
     }
     //==================loadFont===========================
     private Font loadFont(String path, float size) {
